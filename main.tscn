@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3 uid="uid://cxdviwub3s4pa"]
+
+[ext_resource type="Texture2D" uid="uid://txpnau3pawoh" path="res://arena.png" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://dhdhrtl7rvf0f" path="res://Main.cs" id="1_lquwl"]
+[ext_resource type="Texture2D" uid="uid://crjtasdykx2sd" path="res://waiting_screen.png" id="3_h2yge"]
+[ext_resource type="Texture2D" uid="uid://dmxa2x3f314yp" path="res://title.png" id="4_1bvp3"]
+
+[node name="main" type="Node2D" node_paths=PackedStringArray("WaitingScreen", "titleScreen", "startAsServerButton", "startAsClientButton")]
+script = ExtResource("1_lquwl")
+WaitingScreen = NodePath("wait")
+titleScreen = NodePath("title")
+startAsServerButton = NodePath("Button")
+startAsClientButton = NodePath("Button2")
+
+[node name="board" type="Sprite2D" parent="."]
+position = Vector2(640, 360)
+scale = Vector2(2, 2)
+texture = ExtResource("1_ig7tw")
+
+[node name="wait" type="Sprite2D" parent="."]
+position = Vector2(641, 356)
+texture = ExtResource("3_h2yge")
+
+[node name="title" type="Sprite2D" parent="."]
+position = Vector2(646, 356)
+texture = ExtResource("4_1bvp3")
+
+[node name="Button" type="Button" parent="."]
+offset_left = 532.0
+offset_top = 334.0
+offset_right = 667.0
+offset_bottom = 365.0
+scale = Vector2(1.7, 2.2)
+text = "Start as a Server"
+
+[node name="Button2" type="Button" parent="."]
+offset_left = 529.0
+offset_top = 421.0
+offset_right = 659.0
+offset_bottom = 452.0
+scale = Vector2(1.8, 2.2)
+text = "Start as a Client
+"
