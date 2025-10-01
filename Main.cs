@@ -56,8 +56,8 @@ namespace TheCat.Main
 			try
 			{
 				await client.ConnectAsync(IPAddress.Loopback, defaultPort);
-				StartGame();
 				GD.Print($"Connected to server in port {defaultPort}");
+				StartGame();
 
 				using NetworkStream stream = client.GetStream();
 
