@@ -28,20 +28,35 @@ namespace TheCat.Main
 
 		public Boolean gameStarted = false;
 
-		private async void StartClient()
+		public override void _Ready()
+		{
+			startAsServerButton.Pressed += StartServer;
+			startAsClientButton.Pressed += StartClient;
+		}
+
+		private void StartWaiting()
 		{
 			startAsServerButton.Hide();
 			startAsClientButton.Hide();
 			titleScreen.Hide();
+		}
 
+		private void StartGame()
+		{
+			WaitingScreen.Hide();
 			gameStarted = true;
+		}
+
+		private async void StartClient()
+		{
+			StartWaiting();
 
 			using var client = new TcpClient();
 
 			try
 			{
 				await client.ConnectAsync(IPAddress.Loopback, defaultPort);
-				WaitingScreen.Hide();
+				StartGame();
 				GD.Print($"Connected to server in port {defaultPort}");
 
 				using NetworkStream stream = client.GetStream();
@@ -50,9 +65,6 @@ namespace TheCat.Main
 				byte[] dataToSend = Encoding.UTF8.GetBytes("¡¡HOLA MUNDO!!");
 				await stream.WriteAsync(dataToSend, 0, dataToSend.Length);
 				GD.Print($"Message sended");
-
-
-				GD.Print("\nDone. Press any key to exit.");
 			}
 			catch (SocketException se)
 			{
@@ -68,9 +80,7 @@ namespace TheCat.Main
 
 		private async void StartServer()
 		{
-			startAsServerButton.Hide();
-			startAsClientButton.Hide();
-			titleScreen.Hide();
+			StartWaiting();
 
 			var listener = new TcpListener(IPAddress.Any, defaultPort);
 			listener.Start();
@@ -80,8 +90,7 @@ namespace TheCat.Main
 			{
 				TcpClient client = await listener.AcceptTcpClientAsync();
 				GD.Print("Client connected.");
-				WaitingScreen.Hide();
-				gameStarted = true;
+				StartGame();
 
 				NetworkStream stream = client.GetStream();
 
@@ -103,12 +112,6 @@ namespace TheCat.Main
 
 				GD.Print("Client disconnected.");
 			}
-		}
-
-		public override void _Ready()
-		{
-			startAsServerButton.Pressed += StartServer;
-			startAsClientButton.Pressed += StartClient;
 		}
 
 		public override void _Input(InputEvent @event)
