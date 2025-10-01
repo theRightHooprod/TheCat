@@ -69,7 +69,6 @@ namespace TheCat.Main
 
 				using NetworkStream stream = client.GetStream();
 
-
 				byte[] dataToSend = ConvertToBytes(CreateFigure(new Vector2(1, 2)));
 				await stream.WriteAsync(dataToSend, 0, dataToSend.Length);
 				GD.Print($"Message sended");
@@ -110,9 +109,9 @@ namespace TheCat.Main
 					while ((bytesRead = await stream.ReadAsync(buffer)) != 0)
 					{
 						string received = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-						var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(received);
-						var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
-						AddChild(obj);
+
+						SpawnFromString(received);
+
 						GD.Print($"Received: {received}");
 					}
 				}
@@ -123,6 +122,13 @@ namespace TheCat.Main
 
 				GD.Print("Client disconnected.");
 			}
+		}
+
+		private void SpawnFromString(string data)
+		{
+			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
+			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
+			AddChild(obj);
 		}
 
 		private Sprite2D CreateFigure(Vector2 position)
