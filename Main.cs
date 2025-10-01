@@ -114,23 +114,29 @@ namespace TheCat.Main
 			}
 		}
 
+		private void CreateFigure(Vector2 position)
+		{
+			var obj = new Sprite2D();
+
+			string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
+
+			Texture2D texture = GD.Load<Texture2D>(src);
+
+			obj.Texture = texture;
+
+			obj.Centered = true;
+			obj.Scale = new Vector2(2, 2);
+
+			obj.Position = position;
+
+			AddChild(obj);
+		}
+
 		public override void _Input(InputEvent @event)
 		{
 			if (gameStarted == true && @event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
 			{
-				var sprite = new Sprite2D();
-
-				string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
-
-				Texture2D texture = GD.Load<Texture2D>(src);
-				sprite.Texture = texture;
-				sprite.Centered = true;
-				sprite.Scale = new Vector2(2, 2);
-
-				sprite.Position = GetViewport().GetMousePosition();
-
-				AddChild(sprite);
-
+				CreateFigure(GetViewport().GetMousePosition());
 			}
 		}
 
