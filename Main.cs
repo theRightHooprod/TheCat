@@ -3,9 +3,17 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TheCat.Main
 {
+	public class Sprite2DData
+	{
+		public float x;
+		public float y;
+		public string texturePath;
+	}
 	public partial class Main : Node2D
 	{
 		[Export]
@@ -62,7 +70,7 @@ namespace TheCat.Main
 				using NetworkStream stream = client.GetStream();
 
 
-				byte[] dataToSend = Encoding.UTF8.GetBytes("¡¡HOLA MUNDO!!");
+				byte[] dataToSend = ConvertToBytes(CreateFigure(new Vector2(1, 2)));
 				await stream.WriteAsync(dataToSend, 0, dataToSend.Length);
 				GD.Print($"Message sended");
 			}
@@ -102,6 +110,9 @@ namespace TheCat.Main
 					while ((bytesRead = await stream.ReadAsync(buffer)) != 0)
 					{
 						string received = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+						var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(received);
+						var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
+						AddChild(obj);
 						GD.Print($"Received: {received}");
 					}
 				}
@@ -114,7 +125,7 @@ namespace TheCat.Main
 			}
 		}
 
-		private void CreateFigure(Vector2 position)
+		private Sprite2D CreateFigure(Vector2 position)
 		{
 			var obj = new Sprite2D();
 
@@ -129,14 +140,27 @@ namespace TheCat.Main
 
 			obj.Position = position;
 
-			AddChild(obj);
+			return obj;
+		}
+
+		private static Byte[] ConvertToBytes(Sprite2D obj)
+		{
+			Sprite2DData dto = new()
+			{
+				x = obj.Position.X,
+				y = obj.Position.Y,
+			};
+
+			string json = JsonSerializer.Serialize(dto);
+			return Encoding.UTF8.GetBytes(json);
 		}
 
 		public override void _Input(InputEvent @event)
 		{
 			if (gameStarted == true && @event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
 			{
-				CreateFigure(GetViewport().GetMousePosition());
+				Sprite2D obj = CreateFigure(GetViewport().GetMousePosition());
+				AddChild(obj);
 			}
 		}
 
