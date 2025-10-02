@@ -73,7 +73,7 @@ namespace TheCat.Main
 
 							SpawnFromString(line);
 
-							Broadcast(key, ConvertToBytes(line));
+							Broadcast(key, line);
 						}
 					}
 					catch (IOException) { /* ignorar */ }
@@ -114,7 +114,7 @@ namespace TheCat.Main
 					// Broadcast(sourceKey, line);
 					SpawnFromString(line);
 
-					Broadcast(sourceKey, ConvertToBytes(line));
+					Broadcast(sourceKey, line);
 				}
 			}
 			catch (IOException) { /* conexión perdida */ }
@@ -126,8 +126,9 @@ namespace TheCat.Main
 			}
 		}
 
-		private void Broadcast(string sourceKey, byte[] data)
+		private void Broadcast(string sourceKey, string message)
 		{
+			byte[] data = Encoding.UTF8.GetBytes(message + "\n");
 			// Helper interno para escribir de forma segura en un stream
 			void WriteSafe(NetworkStream ns, string targetKey)
 			{
@@ -232,14 +233,14 @@ namespace TheCat.Main
 		{
 			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
 			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
-			AddChild(obj);
+			CallDeferred("add_child", obj);
 		}
 
 		private Sprite2D CreateFigure(Vector2 position)
 		{
 			var obj = new Sprite2D();
 
-			string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
+			string src = !isPlayer1 ? "res://circle.png" : "res://cross.png";
 
 			Texture2D texture = GD.Load<Texture2D>(src);
 
@@ -253,30 +254,18 @@ namespace TheCat.Main
 			return obj;
 		}
 
-		private static Byte[] ConvertToBytes(Sprite2D obj)
+		private string ConvertToBytes(Sprite2D obj)
 		{
+			string src = !isPlayer1 ? "res://circle.png" : "res://cross.png";
+
 			Sprite2DData dto = new()
 			{
 				x = obj.Position.X,
 				y = obj.Position.Y,
+				texturePath = src
 			};
 
-			string json = JsonSerializer.Serialize(dto);
-			return Encoding.UTF8.GetBytes(json);
-		}
-
-		private static Byte[] ConvertToBytes(string data)
-		{
-			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
-
-			Sprite2DData dto = new()
-			{
-				x = jsonObj.x,
-				y = jsonObj.y,
-			};
-
-			string json = JsonSerializer.Serialize(dto);
-			return Encoding.UTF8.GetBytes(json);
+			return JsonSerializer.Serialize(dto);
 		}
 
 		public override void _Input(InputEvent @event)
@@ -296,7 +285,7 @@ namespace TheCat.Main
 				sprite.Position = GetViewport().GetMousePosition();
 
 				AddChild(sprite);
-				byte[] bytes = ConvertToBytes(sprite);
+				string bytes = ConvertToBytes(sprite);
 
 				Broadcast("[local]", bytes);
 
