@@ -16,8 +16,6 @@ namespace TheCat.Main
 		public float x;
 		public float y;
 		public string texturePath;
-
-
 	}
 
 	public partial class Main : Node2D
@@ -73,14 +71,9 @@ namespace TheCat.Main
 
 							GD.Print($"[From {key}] {line}");
 
-							Sprite2DData incommingObject = JsonSerializer.Deserialize<Sprite2DData>(line);
+							SpawnFromString(line);
 
-							Sprite2D sprite = ConvertToObject(incommingObject);
-
-							GetParent().CallDeferred("add_child", sprite);
-
-							byte[] data = ConvertToBytesFromString(line);
-							Broadcast(key, data);
+							Broadcast(key, ConvertToBytes(line));
 						}
 					}
 					catch (IOException) { /* ignorar */ }
@@ -119,15 +112,9 @@ namespace TheCat.Main
 
 					// Reenviar a todos los demás peers (excepto al origen)
 					// Broadcast(sourceKey, line);
-					Sprite2DData incommingObject = JsonSerializer.Deserialize<Sprite2DData>(line);
+					SpawnFromString(line);
 
-					Sprite2D sprite = ConvertToObject(incommingObject);
-
-					GD.Print("added child");
-					GetParent().CallDeferred("add_child", sprite);
-
-					byte[] data = ConvertToBytesFromString(line);
-					Broadcast(sourceKey, data);
+					Broadcast(sourceKey, ConvertToBytes(line));
 				}
 			}
 			catch (IOException) { /* conexión perdida */ }
@@ -241,38 +228,56 @@ namespace TheCat.Main
 			startAsClientButton.Pressed += StartClient;
 		}
 
-		public byte[] ConvertSpriteToBytes(Sprite2D sprite)
+		private void SpawnFromString(string data)
 		{
-			Sprite2DData data = new Sprite2DData
+			GD.Print("Spawned sopposed");
+			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
+			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
+			AddChild(obj);
+		}
+
+		private Sprite2D CreateFigure(Vector2 position)
+		{
+			var obj = new Sprite2D();
+
+			string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
+
+			Texture2D texture = GD.Load<Texture2D>(src);
+
+			obj.Texture = texture;
+
+			obj.Centered = true;
+			obj.Scale = new Vector2(2, 2);
+
+			obj.Position = position;
+
+			return obj;
+		}
+
+		private static Byte[] ConvertToBytes(Sprite2D obj)
+		{
+			Sprite2DData dto = new()
 			{
-				x = sprite.Position.X,
-				y = sprite.Position.Y,
-				texturePath = sprite.Texture.ResourcePath
+				x = obj.Position.X,
+				y = obj.Position.Y,
 			};
 
-			string json = JsonSerializer.Serialize(data);
-
-			byte[] bytes = Encoding.UTF8.GetBytes(json);
-			return bytes;
+			string json = JsonSerializer.Serialize(dto);
+			return Encoding.UTF8.GetBytes(json);
 		}
 
-
-		public Sprite2D ConvertToObject(Sprite2DData data)
+		private static Byte[] ConvertToBytes(string data)
 		{
-			var sprite = new Sprite2D();
-			Texture2D texture = GD.Load<Texture2D>(data.texturePath);
-			sprite.Centered = true;
-			sprite.Scale = new Vector2(2, 2);
-			sprite.Position = new Vector2(data.x, data.y);
+			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
 
-			return sprite;
-		}
+			Sprite2DData dto = new()
+			{
+				x = jsonObj.x,
+				y = jsonObj.y,
+			};
 
-		public byte[] ConvertToBytesFromString(string data)
-		{
-			Sprite2DData incommingObject = JsonSerializer.Deserialize<Sprite2DData>(data);
-			Sprite2D convertedObject = ConvertToObject(incommingObject);
-			return ConvertSpriteToBytes(convertedObject);
+			string json = JsonSerializer.Serialize(dto);
+			return Encoding.UTF8.GetBytes(json);
 		}
 
 		public override void _Input(InputEvent @event)
@@ -292,7 +297,7 @@ namespace TheCat.Main
 				sprite.Position = GetViewport().GetMousePosition();
 
 				AddChild(sprite);
-				byte[] bytes = ConvertSpriteToBytes(sprite);
+				byte[] bytes = ConvertToBytes(sprite);
 
 				Broadcast("[local]", bytes);
 
