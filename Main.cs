@@ -13,11 +13,10 @@ namespace TheCat.Main
 {
 	public class Sprite2DData
 	{
-		public float x;
-		public float y;
-		public string texturePath;
+		public float X { get; set; }
+		public float Y { get; set; }
+		public string texturePath { get; set; }   // keep the exact name you use in JSON
 	}
-
 	public partial class Main : Node2D
 	{
 
@@ -232,7 +231,7 @@ namespace TheCat.Main
 		private void SpawnFromString(string data)
 		{
 			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
-			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
+			var obj = CreateFigure(new Vector2(jsonObj.X, jsonObj.Y));
 			CallDeferred("add_child", obj);
 		}
 
@@ -260,8 +259,8 @@ namespace TheCat.Main
 
 			Sprite2DData dto = new()
 			{
-				x = obj.Position.X,
-				y = obj.Position.Y,
+				X = obj.Position.X,
+				Y = obj.Position.Y,
 				texturePath = src
 			};
 
