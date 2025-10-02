@@ -15,7 +15,6 @@ namespace TheCat.Main
 	{
 		public float X { get; set; }
 		public float Y { get; set; }
-		public string texturePath { get; set; }   // keep the exact name you use in JSON
 	}
 	public partial class Main : Node2D
 	{
@@ -255,13 +254,10 @@ namespace TheCat.Main
 
 		private string ConvertToBytes(Sprite2D obj)
 		{
-			string src = !isPlayer1 ? "res://circle.png" : "res://cross.png";
-
 			Sprite2DData dto = new()
 			{
 				X = obj.Position.X,
 				Y = obj.Position.Y,
-				texturePath = src
 			};
 
 			return JsonSerializer.Serialize(dto);
