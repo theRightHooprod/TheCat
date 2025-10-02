@@ -218,6 +218,10 @@ namespace TheCat.Main
 
 		private void StartClient()
 		{
+			Thread listenerThread = new(() => StartListener(7801));
+			listenerThread.IsBackground = true;
+			listenerThread.Start();
+
 			ConnectToPeer(IPAddress.Loopback.ToString(), defaultPort);
 			isPlayer1 = false;
 			StartWaiting();
