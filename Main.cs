@@ -230,7 +230,6 @@ namespace TheCat.Main
 
 		private void SpawnFromString(string data)
 		{
-			GD.Print("Spawned sopposed");
 			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
 			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
 			AddChild(obj);
