@@ -8,14 +8,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
+using System.Text.Json.Serialization;
 
 namespace TheCat.Main
 {
 	public class Sprite2DData
 	{
-		public float X { get; set; }
-		public float Y { get; set; }
+		public float x;
+		public float y;
+		public string texturePath;
 	}
 	public partial class Main : Node2D
 	{
@@ -35,11 +36,28 @@ namespace TheCat.Main
 		[Export]
 		public required Button startAsClientButton;
 
-		public Boolean isPlayer1 = true;
-		public Boolean gameStarted { get; set; } = false;
+		public override void _Ready()
+		{
+			startAsServerButton.Pressed += StartServer;
+			startAsClientButton.Pressed += StartClient;
+		}
 
-		// Conexiones iniciadas por este proceso (cliente)
-		private readonly ConcurrentDictionary<string, NetworkStream> outboundStreams = new();
+		private void StartWaiting()
+		{
+			startAsServerButton.Hide();
+			startAsClientButton.Hide();
+			titleScreen.Hide();
+		}
+
+		private void StartGame()
+		{
+			WaitingScreen.Hide();
+			gameStarted = true;
+		}
+
+		private async void StartClient()
+		{
+			StartWaiting();
 
 		// Conexiones aceptadas por el listener (servidor)
 		private readonly ConcurrentDictionary<string, NetworkStream> inboundStreams = new();
@@ -48,43 +66,19 @@ namespace TheCat.Main
 		{
 			try
 			{
-				TcpClient client = new(host, port);
-				NetworkStream ns = client.GetStream();
-				string key = $"{host}:{port}";
-
-				outboundStreams[key] = ns;
-				GD.Print($"[Outbound] Conectado a {key}");
+				await client.ConnectAsync(IPAddress.Loopback, defaultPort);
+				GD.Print($"Connected to server in port {defaultPort}");
+				StartGame();
 
 				StartGame();
 
-				// Hilo que lee datos provenientes de este peer
-				Thread t = new(() =>
-				{
-					using var reader = new StreamReader(ns, Encoding.UTF8);
-					try
-					{
-						while (true)
-						{
-							string? line = reader.ReadLine();
-							if (line == null) break;
-
-							GD.Print($"[From {key}] {line}");
-
-							SpawnFromString(line);
-
-							Broadcast(key, line);
-						}
-					}
-					catch (IOException) { /* ignorar */ }
-					finally
-					{
-						GD.Print($"[Outbound] Desconectado de {key}");
-						outboundStreams.TryRemove(key, out _);
-						client.Close();
-					}
-				});
-				t.IsBackground = true;
-				t.Start();
+				byte[] dataToSend = ConvertToBytes(CreateFigure(new Vector2(1, 2)));
+				await stream.WriteAsync(dataToSend, 0, dataToSend.Length);
+				GD.Print($"Message sended");
+			}
+			catch (SocketException se)
+			{
+				GD.Print($"Socket error: {se.Message}");
 			}
 			catch (Exception ex)
 			{
@@ -94,20 +88,16 @@ namespace TheCat.Main
 
 		private void HandleIncoming(string sourceKey, NetworkStream ns, TcpClient client)
 		{
-			GD.Print($"[Inbound] Conexión aceptada desde {sourceKey}");
+			StartWaiting();
 
 			StartGame();
 
 			using var reader = new StreamReader(ns, Encoding.UTF8);
 			try
 			{
-				while (true)
-				{
-					string? line = reader.ReadLine(); // bloquea hasta recibir '\n'
-					if (line == null) break;         // la otra punta cerró la conexión
-
-					// Mostrar en pantalla
-					GD.Print($"[{sourceKey}] {line}");
+				TcpClient client = await listener.AcceptTcpClientAsync();
+				GD.Print("Client connected.");
+				StartGame();
 
 					// Reenviar a todos los demás peers (excepto al origen)
 					// Broadcast(sourceKey, line);
@@ -133,8 +123,14 @@ namespace TheCat.Main
 			{
 				try
 				{
-					ns.Write(data, 0, data.Length);
-					ns.Flush();
+					while ((bytesRead = await stream.ReadAsync(buffer)) != 0)
+					{
+						string received = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+						SpawnFromString(received);
+
+						GD.Print($"Received: {received}");
+					}
 				}
 				catch (Exception ex)
 				{
@@ -160,86 +156,18 @@ namespace TheCat.Main
 			}
 		}
 
-		private void StartListener(int port)
-		{
-			TcpListener listener = new(IPAddress.Any, port);
-			GD.Print($"[Listener] Iniciado en puerto {port}");
-			StartWaiting();
-			listener.Start();
-			while (true)
-			{
-				try
-				{
-					TcpClient client = listener.AcceptTcpClient(); // bloqueo hasta que llegue una conexión
-					string key = client.Client.RemoteEndPoint?.ToString() ?? Guid.NewGuid().ToString();
-					NetworkStream ns = client.GetStream();
-
-					// Guardamos el stream para poder reenviarle mensajes más tarde
-					inboundStreams[key] = ns;
-
-					// Cada conexión entrante tiene su propio hilo de lectura
-					Thread t = new(() => HandleIncoming(key, ns, client));
-					t.IsBackground = true;
-					t.Start();
-				}
-				catch (Exception ex)
-				{
-					GD.Print($"[Listener] Excepción: {ex.Message}");
-					break; // Salir del bucle si algo fatal ocurre
-				}
-			}
-		}
-
-		public void StartWaiting()
-		{
-			startAsServerButton.CallDeferred("hide");
-			startAsClientButton.CallDeferred("hide");
-			titleScreen.CallDeferred("hide");
-		}
-
-		public void StartGame()
-		{
-			WaitingScreen.CallDeferred("hide");
-			gameStarted = true;
-		}
-
-		private void StartClient()
-		{
-			Thread listenerThread = new(() => StartListener(7801));
-			listenerThread.IsBackground = true;
-			listenerThread.Start();
-
-			ConnectToPeer(IPAddress.Loopback.ToString(), defaultPort);
-			isPlayer1 = false;
-			StartWaiting();
-		}
-
-		private void StartServer()
-		{
-			Thread listenerThread = new(() => StartListener(defaultPort));
-			listenerThread.IsBackground = true;
-			listenerThread.Start();
-		}
-
-
-		public override void _Ready()
-		{
-			startAsServerButton.Pressed += StartServer;
-			startAsClientButton.Pressed += StartClient;
-		}
-
 		private void SpawnFromString(string data)
 		{
 			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
-			var obj = CreateFigure(new Vector2(jsonObj!.X, jsonObj!.Y));
-			CallDeferred("add_child", obj);
+			var obj = CreateFigure(new Vector2(jsonObj.x, jsonObj.y));
+			AddChild(obj);
 		}
 
-		private Sprite2D CreateFigure(Vector2 position, bool isLocal = false)
+		private Sprite2D CreateFigure(Vector2 position)
 		{
 			var obj = new Sprite2D();
 
-			string src = isLocal ? isPlayer1 ? "res://circle.png" : "res://cross.png" : !isPlayer1 ? "res://circle.png" : "res://cross.png";
+			string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
 
 			Texture2D texture = GD.Load<Texture2D>(src);
 
@@ -250,47 +178,27 @@ namespace TheCat.Main
 
 			obj.Position = position;
 
-			obj.AddToGroup("texture");  //Sets the player type.
-
-			Area2D body = new();
-
-			CollisionShape2D collition = new()
-			{
-				Shape = new RectangleShape2D { Size = new Vector2(20, 20) }
-			};
-
-			body.AddToGroup(isLocal ? "Player1":"Player2");  //Sets the player type.
-
-			body.AddChild(collition);
-
-			obj.AddChild(body);
-
-			GD.Print($"Added group: {collition.GetGroups()}");
-
 			return obj;
 		}
 
-		private string ConvertToBytes(Sprite2D obj)
+		private static Byte[] ConvertToBytes(Sprite2D obj)
 		{
 			Sprite2DData dto = new()
 			{
-				X = obj.Position.X,
-				Y = obj.Position.Y,
+				x = obj.Position.X,
+				y = obj.Position.Y,
 			};
 
-			return JsonSerializer.Serialize(dto);
+			string json = JsonSerializer.Serialize(dto);
+			return Encoding.UTF8.GetBytes(json);
 		}
 
 		public override void _Input(InputEvent @event)
 		{
 			if (gameStarted == true && @event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
 			{
-				Sprite2D shape = CreateFigure(GetViewport().GetMousePosition(), true);
-				AddChild(shape);
-				string bytes = ConvertToBytes(shape);
-
-				Broadcast("[local]", bytes);
-
+				Sprite2D obj = CreateFigure(GetViewport().GetMousePosition());
+				AddChild(obj);
 			}
 
 		}
