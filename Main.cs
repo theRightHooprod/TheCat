@@ -1,5 +1,9 @@
+#nullable enable
+
 using Godot;
 using System;
+using System.Collections.Concurrent;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -16,25 +20,21 @@ namespace TheCat.Main
 	}
 	public partial class Main : Node2D
 	{
-		[Export]
-		public Boolean isPlayer1 = true;
 
 		[Export]
-		public Sprite2D WaitingScreen;
+		public required Sprite2D WaitingScreen;
 
 		[Export]
-		public Sprite2D titleScreen;
+		public required Sprite2D titleScreen;
 
 		[Export]
 		public int defaultPort = 7800;
 
 		[Export]
-		public Button startAsServerButton;
+		public required Button startAsServerButton;
 
 		[Export]
-		public Button startAsClientButton;
-
-		public Boolean gameStarted = false;
+		public required Button startAsClientButton;
 
 		public override void _Ready()
 		{
@@ -59,15 +59,18 @@ namespace TheCat.Main
 		{
 			StartWaiting();
 
-			using var client = new TcpClient();
+		// Conexiones aceptadas por el listener (servidor)
+		private readonly ConcurrentDictionary<string, NetworkStream> inboundStreams = new();
 
+		private void ConnectToPeer(string host, int port)
+		{
 			try
 			{
 				await client.ConnectAsync(IPAddress.Loopback, defaultPort);
 				GD.Print($"Connected to server in port {defaultPort}");
 				StartGame();
 
-				using NetworkStream stream = client.GetStream();
+				StartGame();
 
 				byte[] dataToSend = ConvertToBytes(CreateFigure(new Vector2(1, 2)));
 				await stream.WriteAsync(dataToSend, 0, dataToSend.Length);
@@ -79,31 +82,45 @@ namespace TheCat.Main
 			}
 			catch (Exception ex)
 			{
-				GD.Print($"Unexpected error: {ex.Message}");
+				GD.Print($"[Outbound] No se pudo conectar a {host}:{port} – {ex.Message}");
 			}
-
-			Console.WriteLine("Disconnected.");
 		}
 
-		private async void StartServer()
+		private void HandleIncoming(string sourceKey, NetworkStream ns, TcpClient client)
 		{
 			StartWaiting();
 
-			var listener = new TcpListener(IPAddress.Any, defaultPort);
-			listener.Start();
-			GD.Print($"Server listening on port {defaultPort}...");
+			StartGame();
 
-			while (true)
+			using var reader = new StreamReader(ns, Encoding.UTF8);
+			try
 			{
 				TcpClient client = await listener.AcceptTcpClientAsync();
 				GD.Print("Client connected.");
 				StartGame();
 
-				NetworkStream stream = client.GetStream();
+					// Reenviar a todos los demás peers (excepto al origen)
+					// Broadcast(sourceKey, line);
+					SpawnFromString(line);
 
-				byte[] buffer = new byte[1024];
-				int bytesRead;
+					Broadcast(sourceKey, line);
+				}
+			}
+			catch (IOException) { /* conexión perdida */ }
+			finally
+			{
+				GD.Print($"[Inbound] Desconectado {sourceKey}");
+				inboundStreams.TryRemove(sourceKey, out _);
+				client.Close();
+			}
+		}
 
+		private void Broadcast(string sourceKey, string message)
+		{
+			byte[] data = Encoding.UTF8.GetBytes(message + "\n");
+			// Helper interno para escribir de forma segura en un stream
+			void WriteSafe(NetworkStream ns, string targetKey)
+			{
 				try
 				{
 					while ((bytesRead = await stream.ReadAsync(buffer)) != 0)
@@ -117,10 +134,25 @@ namespace TheCat.Main
 				}
 				catch (Exception ex)
 				{
-					GD.Print($"Error: {ex.Message}");
+					GD.Print($"[Broadcast] Error enviando a {targetKey}: {ex.Message}");
+					// Si falla, quitamos el stream problemático
+					inboundStreams.TryRemove(targetKey, out _);
+					outboundStreams.TryRemove(targetKey, out _);
 				}
+			}
 
-				GD.Print("Client disconnected.");
+			// Envío a todas las conexiones salientes
+			foreach (var kvp in outboundStreams)
+			{
+				if (kvp.Key == sourceKey) continue; // no devolver al remitente
+				WriteSafe(kvp.Value, kvp.Key);
+			}
+
+			// Envío a todas las conexiones entrantes
+			foreach (var kvp in inboundStreams)
+			{
+				if (kvp.Key == sourceKey) continue;
+				WriteSafe(kvp.Value, kvp.Key);
 			}
 		}
 
@@ -168,6 +200,7 @@ namespace TheCat.Main
 				Sprite2D obj = CreateFigure(GetViewport().GetMousePosition());
 				AddChild(obj);
 			}
+
 		}
 
 

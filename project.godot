@@ -23,3 +23,7 @@ window/size/viewport_height=720
 [dotnet]
 
 project/assembly_name="TheCat"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(1, 1, 1, 1)
