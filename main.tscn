@@ -24,7 +24,8 @@ position = Vector2(640, 360)
 scale = Vector2(2, 2)
 texture = ExtResource("1_ig7tw")
 
-[node name="xd" type="Area2D" parent="board" node_paths=PackedStringArray("localWin", "remoteWin", "draw", "restartGame")]
+[node name="colliders" type="Area2D" parent="board" node_paths=PackedStringArray("localWin", "remoteWin", "draw", "restartGame")]
+position = Vector2(-1, 0)
 script = ExtResource("3_lquwl")
 localWin = NodePath("../../Local Win")
 remoteWin = NodePath("../../Remote Win")
@@ -32,39 +33,39 @@ draw = NodePath("../../Draw")
 _mainScriptPath = NodePath("../..")
 restartGame = NodePath("../../Restart Game Button")
 
-[node name="grid 1" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 1" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-48, -45.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 2" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 2" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-1, -45.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 3" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 3" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(46.5, -45.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 4" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 4" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-48, -1.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 5" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 5" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-1, -1.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 6" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 6" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(46, -1.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 7" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 7" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-48, 42.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 8" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 8" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(-1.5, 42.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 
-[node name="grid 9" type="CollisionShape2D" parent="board/xd"]
+[node name="grid 9" type="CollisionShape2D" parent="board/colliders"]
 position = Vector2(46, 42.5)
 shape = SubResource("RectangleShape2D_1bvp3")
 

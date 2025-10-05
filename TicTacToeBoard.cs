@@ -87,7 +87,7 @@ public partial class TicTacToeBoard : Area2D
 		Vector2 localPos = ToLocal(other.GlobalPosition);
 
 		// ------------------------------------------------------------
-		// 2️⃣ Map that local position to a row/column.
+		// 2️ Map that local position to a row/column.
 		// ------------------------------------------------------------
 		int col = (int)Math.Floor((localPos.X - _gridOrigin.X) / CellSize);
 		int row = (int)Math.Floor((localPos.Y - _gridOrigin.Y) / CellSize);
