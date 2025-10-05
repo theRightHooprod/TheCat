@@ -1,7 +1,8 @@
+#nullable enable
+
 using Godot;
 using System;
 using System.Collections.Concurrent;
-using System.Data.SqlTypes;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -20,22 +21,22 @@ namespace TheCat.Main
 	{
 
 		[Export]
-		public Sprite2D WaitingScreen;
+		public required Sprite2D WaitingScreen;
 
 		[Export]
-		public Sprite2D titleScreen;
+		public required Sprite2D titleScreen;
 
 		[Export]
 		public int defaultPort = 7800;
 
 		[Export]
-		public Button startAsServerButton;
+		public required Button startAsServerButton;
 
 		[Export]
-		public Button startAsClientButton;
+		public required Button startAsClientButton;
 
 		public Boolean isPlayer1 = true;
-		public Boolean gameStarted = false;
+		public Boolean gameStarted { get; set; } = false;
 
 		// Conexiones iniciadas por este proceso (cliente)
 		private readonly ConcurrentDictionary<string, NetworkStream> outboundStreams = new();
@@ -230,15 +231,15 @@ namespace TheCat.Main
 		private void SpawnFromString(string data)
 		{
 			var jsonObj = JsonSerializer.Deserialize<Sprite2DData>(data);
-			var obj = CreateFigure(new Vector2(jsonObj.X, jsonObj.Y));
+			var obj = CreateFigure(new Vector2(jsonObj!.X, jsonObj!.Y));
 			CallDeferred("add_child", obj);
 		}
 
-		private Sprite2D CreateFigure(Vector2 position)
+		private Sprite2D CreateFigure(Vector2 position, bool isLocal = false)
 		{
 			var obj = new Sprite2D();
 
-			string src = !isPlayer1 ? "res://circle.png" : "res://cross.png";
+			string src = isLocal ? isPlayer1 ? "res://circle.png" : "res://cross.png" : !isPlayer1 ? "res://circle.png" : "res://cross.png";
 
 			Texture2D texture = GD.Load<Texture2D>(src);
 
@@ -248,6 +249,23 @@ namespace TheCat.Main
 			obj.Scale = new Vector2(2, 2);
 
 			obj.Position = position;
+
+			obj.AddToGroup("texture");  //Sets the player type.
+
+			Area2D body = new();
+
+			CollisionShape2D collition = new()
+			{
+				Shape = new RectangleShape2D { Size = new Vector2(20, 20) }
+			};
+
+			body.AddToGroup(isLocal ? "Player1":"Player2");  //Sets the player type.
+
+			body.AddChild(collition);
+
+			obj.AddChild(body);
+
+			GD.Print($"Added group: {collition.GetGroups()}");
 
 			return obj;
 		}
@@ -267,20 +285,9 @@ namespace TheCat.Main
 		{
 			if (gameStarted == true && @event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
 			{
-				var sprite = new Sprite2D();
-
-				string src = isPlayer1 ? "res://circle.png" : "res://cross.png";
-
-
-				Texture2D texture = GD.Load<Texture2D>(src);
-				sprite.Texture = texture;
-				sprite.Centered = true;
-				sprite.Scale = new Vector2(2, 2);
-
-				sprite.Position = GetViewport().GetMousePosition();
-
-				AddChild(sprite);
-				string bytes = ConvertToBytes(sprite);
+				Sprite2D shape = CreateFigure(GetViewport().GetMousePosition(), true);
+				AddChild(shape);
+				string bytes = ConvertToBytes(shape);
 
 				Broadcast("[local]", bytes);
 

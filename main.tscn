@@ -1,9 +1,16 @@
-[gd_scene load_steps=5 format=3 uid="uid://cxdviwub3s4pa"]
+[gd_scene load_steps=10 format=3 uid="uid://cxdviwub3s4pa"]
 
 [ext_resource type="Texture2D" uid="uid://txpnau3pawoh" path="res://arena.png" id="1_ig7tw"]
 [ext_resource type="Script" uid="uid://dhdhrtl7rvf0f" path="res://Main.cs" id="1_lquwl"]
 [ext_resource type="Texture2D" uid="uid://crjtasdykx2sd" path="res://waiting_screen.png" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://da3bob50sgrue" path="res://TicTacToeBoard.cs" id="3_lquwl"]
 [ext_resource type="Texture2D" uid="uid://dmxa2x3f314yp" path="res://title.png" id="4_1bvp3"]
+[ext_resource type="Texture2D" uid="uid://emse5h8c4y6p" path="res://localwin.png" id="5_7mycd"]
+[ext_resource type="Texture2D" uid="uid://d0hmnts8gvcxc" path="res://remotewin.png" id="6_272bh"]
+[ext_resource type="Texture2D" uid="uid://crw5lk41yglfy" path="res://draw.png" id="8_5vw27"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1bvp3"]
+size = Vector2(42, 39)
 
 [node name="main" type="Node2D" node_paths=PackedStringArray("WaitingScreen", "titleScreen", "startAsServerButton", "startAsClientButton")]
 script = ExtResource("1_lquwl")
@@ -16,6 +23,50 @@ startAsClientButton = NodePath("Button2")
 position = Vector2(640, 360)
 scale = Vector2(2, 2)
 texture = ExtResource("1_ig7tw")
+
+[node name="xd" type="Area2D" parent="board" node_paths=PackedStringArray("localWin", "remoteWin", "draw", "restartGame")]
+script = ExtResource("3_lquwl")
+localWin = NodePath("../../Local Win")
+remoteWin = NodePath("../../Remote Win")
+draw = NodePath("../../Draw")
+_mainScriptPath = NodePath("../..")
+restartGame = NodePath("../../Restart Game Button")
+
+[node name="grid 1" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-48, -45.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 2" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-1, -45.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 3" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(46.5, -45.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 4" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-48, -1.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 5" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-1, -1.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 6" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(46, -1.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 7" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-48, 42.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 8" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(-1.5, 42.5)
+shape = SubResource("RectangleShape2D_1bvp3")
+
+[node name="grid 9" type="CollisionShape2D" parent="board/xd"]
+position = Vector2(46, 42.5)
+shape = SubResource("RectangleShape2D_1bvp3")
 
 [node name="wait" type="Sprite2D" parent="."]
 position = Vector2(641, 356)
@@ -41,3 +92,31 @@ offset_bottom = 452.0
 scale = Vector2(1.8, 2.2)
 text = "Start as a Client
 "
+
+[node name="Restart Game Button" type="Button" parent="."]
+visible = false
+z_index = 4
+offset_left = 529.0
+offset_top = 421.0
+offset_right = 659.0
+offset_bottom = 452.0
+scale = Vector2(1.8, 2.2)
+text = "Volver a jugar
+"
+
+[node name="Local Win" type="Sprite2D" parent="."]
+visible = false
+z_index = 3
+position = Vector2(641, 361)
+texture = ExtResource("5_7mycd")
+
+[node name="Remote Win" type="Sprite2D" parent="."]
+visible = false
+z_index = 3
+position = Vector2(641, 362)
+texture = ExtResource("6_272bh")
+
+[node name="Draw" type="Sprite2D" parent="."]
+visible = false
+position = Vector2(643, 364)
+texture = ExtResource("8_5vw27")
